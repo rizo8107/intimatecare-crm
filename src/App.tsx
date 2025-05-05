@@ -1,3 +1,4 @@
+// React is needed for JSX even if not explicitly used
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
@@ -10,6 +11,7 @@ import ViewLeadPage from './pages/ViewLeadPage';
 import TasksPage from './pages/TasksPage';
 import TelegramSubscriptionsPage from './pages/TelegramSubscriptionsPage';
 import EbookAccessPage from './pages/EbookAccessPage';
+import TelegramCampaignPage from './pages/TelegramCampaignPage';
 
 function App() {
   return (
@@ -24,6 +26,7 @@ function App() {
             <Route path="/leads/view/:id" element={<ViewLeadPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/telegram" element={<TelegramSubscriptionsPage />} />
+            <Route path="/telegram/campaign" element={<TelegramCampaignPage />} />
             <Route path="/ebooks" element={<EbookAccessPage />} />
             <Route path="/reports" element={<Dashboard />} />
             <Route path="/settings" element={<Dashboard />} />

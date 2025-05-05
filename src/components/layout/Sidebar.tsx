@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -10,7 +10,9 @@ import {
   X,
   Home,
   MessageCircle,
-  BookOpen
+  BookOpen,
+  ChevronDown,
+  Send
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { Dialog, Transition } from '@headlessui/react';
@@ -24,6 +26,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { currentUser } = useAppContext();
   const location = useLocation();
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const navItems = [
     { 
@@ -45,7 +48,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { 
       name: 'Telegram', 
       path: '/telegram', 
-      icon: <MessageCircle size={20} />
+      icon: <MessageCircle size={20} />,
+      children: [
+        {
+          name: 'Subscriptions',
+          path: '/telegram',
+          icon: <MessageCircle size={16} />
+        },
+        {
+          name: 'Campaign',
+          path: '/telegram/campaign',
+          icon: <Send size={16} />
+        }
+      ]
     },
     { 
       name: 'Ebooks', 
@@ -70,6 +85,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     }
     return location.pathname.startsWith(path);
   };
+  
+  const toggleExpand = (name: string) => {
+    setExpandedItems(prev => 
+      prev.includes(name) 
+        ? prev.filter(item => item !== name) 
+        : [...prev, name]
+    );
+  };
 
   const sidebarContent = (
     <>
@@ -89,21 +112,68 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       <div className="flex-1 overflow-y-auto">
         <nav className="px-2 py-4 space-y-1">
           {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              onClick={onClose}
-              className={`
-                group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition
-                ${isActive(item.path, item.exact)
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-700 hover:bg-gray-50'
-                }
-              `}
-            >
-              <span className="mr-3">{item.icon}</span>
-              <span>{item.name}</span>
-            </Link>
+            <div key={item.path}>
+              {item.children ? (
+                <div className="space-y-1">
+                  <button
+                    onClick={() => toggleExpand(item.name)}
+                    className={`
+                      w-full group flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition
+                      ${isActive(item.path)
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'text-gray-700 hover:bg-gray-50'
+                      }
+                    `}
+                  >
+                    <div className="flex items-center">
+                      <span className="mr-3">{item.icon}</span>
+                      <span>{item.name}</span>
+                    </div>
+                    <ChevronDown 
+                      size={16} 
+                      className={`transition-transform ${expandedItems.includes(item.name) ? 'transform rotate-180' : ''}`} 
+                    />
+                  </button>
+                  
+                  {expandedItems.includes(item.name) && (
+                    <div className="pl-10 space-y-1">
+                      {item.children.map((child) => (
+                        <Link
+                          key={child.path}
+                          to={child.path}
+                          onClick={onClose}
+                          className={`
+                            group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition
+                            ${isActive(child.path, child.path === '/telegram')
+                              ? 'bg-blue-50 text-blue-700'
+                              : 'text-gray-700 hover:bg-gray-50'
+                            }
+                          `}
+                        >
+                          <span className="mr-3">{child.icon}</span>
+                          <span>{child.name}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  to={item.path}
+                  onClick={onClose}
+                  className={`
+                    group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition
+                    ${isActive(item.path, item.exact)
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-700 hover:bg-gray-50'
+                    }
+                  `}
+                >
+                  <span className="mr-3">{item.icon}</span>
+                  <span>{item.name}</span>
+                </Link>
+              )}
+            </div>
           ))}
         </nav>
       </div>
