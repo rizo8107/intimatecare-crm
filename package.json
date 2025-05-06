@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^1.7.18",
+    "@supabase/supabase-js": "^2.49.4",
     "@types/uuid": "^10.0.0",
     "chart.js": "^4.4.9",
     "date-fns": "^4.1.0",
