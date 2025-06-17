@@ -65,6 +65,7 @@ export interface TelegramSubscription {
   start_date: string;
   expiry_date: string;
   reminder_date: string;
+  signed?: boolean; // Indicates if the user has signed the agreement
   // Fields for data linking
   email?: string; // Added to link with leads and ebook access
   leadId?: string; // Reference to associated lead

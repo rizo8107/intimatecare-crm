@@ -44,6 +44,7 @@ const TelegramSubscriptionsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [planFilter, setPlanFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [signedFilter, setSignedFilter] = useState<string>('all');
 
   useEffect(() => {
     const fetchSubscriptions = async () => {
@@ -91,9 +92,15 @@ const TelegramSubscriptionsPage: React.FC = () => {
         (statusFilter === 'expiring-soon' && status === 'expiring-soon') ||
         (statusFilter === 'expired' && status === 'expired');
       
-      return matchesSearch && matchesPlan && matchesStatus;
+      // Apply signed filter
+      const matchesSigned = 
+        signedFilter === 'all' ||
+        (signedFilter === 'signed' && subscription.signed === true) ||
+        (signedFilter === 'not-signed' && (subscription.signed === false || subscription.signed === undefined));
+      
+      return matchesSearch && matchesPlan && matchesStatus && matchesSigned;
     });
-  }, [subscriptions, searchTerm, planFilter, statusFilter]);
+  }, [subscriptions, searchTerm, planFilter, statusFilter, signedFilter]);
 
   if (isLoading) {
     return (
@@ -183,6 +190,18 @@ const TelegramSubscriptionsPage: React.FC = () => {
                   <option value="expired">Expired</option>
                 </select>
               </div>
+              <div className="flex items-center gap-2">
+                <select
+                  className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                  value={signedFilter}
+                  onChange={(e) => setSignedFilter(e.target.value)}
+                  aria-label="Filter by signed status"
+                >
+                  <option value="all">All Signed Status</option>
+                  <option value="signed">Signed</option>
+                  <option value="not-signed">Not Signed</option>
+                </select>
+              </div>
             </div>
           </div>
           {filteredSubscriptions.length === 0 ? (
@@ -225,6 +244,9 @@ const TelegramSubscriptionsPage: React.FC = () => {
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Signed
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -235,7 +257,7 @@ const TelegramSubscriptionsPage: React.FC = () => {
                     return (
                     <tr 
                       key={subscription.id}
-                      className="hover:bg-gray-50 transition-colors duration-150 ease-in-out"
+                      className={`hover:bg-gray-100 transition-colors duration-150 ease-in-out ${subscription.signed ? 'bg-green-50' : 'bg-red-50'}`}
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {subscription.customer_name}
@@ -277,6 +299,15 @@ const TelegramSubscriptionsPage: React.FC = () => {
                           {status === 'active' ? 'Active' : ''}
                           {status === 'expiring-soon' ? 'Expiring Soon' : ''}
                           {status === 'expired' ? 'Expired' : ''}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span 
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            ${subscription.signed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}
+                          `}
+                        >
+                          {subscription.signed ? 'Signed' : 'Not Signed'}
                         </span>
                       </td>
                     </tr>
