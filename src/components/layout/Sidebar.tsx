@@ -12,7 +12,8 @@ import {
   MessageCircle,
   BookOpen,
   ChevronDown,
-  Send
+  Send,
+  GraduationCap
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { Dialog, Transition } from '@headlessui/react';
@@ -59,8 +60,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           name: 'Campaign',
           path: '/telegram/campaign',
           icon: <Send size={16} />
+        },
+        {
+          name: 'Payment Comparison',
+          path: '/telegram/payment-comparison',
+          icon: <BarChart size={16} />
         }
       ]
+    },
+    { 
+      name: 'Student Sessions', 
+      path: '/sessions', 
+      icon: <GraduationCap size={20} />
     },
     { 
       name: 'Ebooks', 

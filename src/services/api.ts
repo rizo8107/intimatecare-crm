@@ -1,4 +1,4 @@
-import { DashboardSummary, EbookAccess, Lead, LeadStatus, Note, PaymentData, Task, TelegramSubscription } from '../types';
+import { DashboardSummary, EbookAccess, Lead, LeadStatus, Note, PaymentData, StudentSession, Task, TelegramSubscription } from '../types';
 
 const API_URL = 'https://crm-supabase.7za6uc.easypanel.host/rest/v1';
 const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzQ5ODM5NDAwLCJleHAiOjE5MDc2MDU4MDB9.sWCsUjb5xqDn6pIkPlhHScIHJ1ytr8rlTH-SdrHLuZE';
@@ -15,8 +15,11 @@ async function fetchApi(endpoint: string, options: RequestInit = {}) {
   const url = `${API_URL}/${endpoint}`;
   try {
     const response = await fetch(url, {
-      headers,
       ...options,
+      headers: {
+        ...headers,
+        ...(options.headers || {})
+      }
     });
 
     if (!response.ok) {
@@ -26,7 +29,25 @@ async function fetchApi(endpoint: string, options: RequestInit = {}) {
       );
     }
 
-    return response.json();
+    // Check if the response has content before trying to parse it as JSON
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const contentLength = response.headers.get('content-length');
+      if (contentLength && parseInt(contentLength) > 0) {
+        return response.json();
+      }
+    }
+    
+    // For empty responses or non-JSON responses
+    if (response.status === 204) {
+      return null; // No content
+    }
+    
+    try {
+      return response.json();
+    } catch (e) {
+      return null; // Return null if JSON parsing fails
+    }
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`API request failed: ${error.message}`);
@@ -638,6 +659,71 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     };
   } catch (error) {
     console.error('Error fetching dashboard summary:', error);
+    throw error;
+  }
+}
+
+// Student Session APIs
+export async function getStudentSessions(): Promise<StudentSession[]> {
+  try {
+    const data = await fetchApi('student_session_form?select=*');
+    return data.map((session: any) => ({
+      ...session,
+      price: parseFloat(session.price),
+      spoken_to_someone_before: session.spoken_to_someone_before === 'TRUE' || session.spoken_to_someone_before === true,
+      completed: session.completed === true
+    }));
+  } catch (error) {
+    console.error('Error fetching student sessions:', error);
+    throw error;
+  }
+}
+
+export async function getStudentSession(id: string): Promise<StudentSession> {
+  try {
+    const data = await fetchApi(`student_session_form?id=eq.${id}&select=*`);
+    if (data.length === 0) {
+      throw new Error(`Student session with ID ${id} not found`);
+    }
+    const session = data[0];
+    return {
+      ...session,
+      price: parseFloat(session.price),
+      spoken_to_someone_before: session.spoken_to_someone_before === 'TRUE' || session.spoken_to_someone_before === true,
+      completed: session.completed === true
+    };
+  } catch (error) {
+    console.error(`Error fetching student session with ID ${id}:`, error);
+    throw error;
+  }
+}
+
+export async function updateStudentSession(id: string, sessionData: Partial<StudentSession>): Promise<StudentSession> {
+  try {
+    // Add Prefer header to get back representation of the updated record
+    await fetchApi(`student_session_form?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Prefer': 'return=minimal' // Don't return the updated record
+      },
+      body: JSON.stringify(sessionData)
+    });
+    
+    // Fetch the updated record separately
+    return getStudentSession(id);
+  } catch (error) {
+    console.error(`Error updating student session with ID ${id}:`, error);
+    throw error;
+  }
+}
+
+export async function deleteStudentSession(id: string): Promise<void> {
+  try {
+    await fetchApi(`student_session_form?id=eq.${id}`, {
+      method: 'DELETE'
+    });
+  } catch (error) {
+    console.error(`Error deleting student session with ID ${id}:`, error);
     throw error;
   }
 }

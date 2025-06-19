@@ -93,3 +93,31 @@ export interface PaymentData {
   product: string;
   created_at?: string;
 }
+
+export interface StudentSession {
+  id: string;
+  name: string;
+  gender: string;
+  email: string;
+  phone: string;
+  college: string;
+  course_and_year: string;
+  academic_year: string;
+  location: string;
+  session_date: string | null;
+  session_time: string | null;
+  what_brings_to_session: string | null;
+  hope_to_gain: string | null;
+  specific_topics: string | null;
+  spoken_to_someone_before: boolean;
+  looking_for: string | null;
+  anything_else: string | null;
+  join_whatsapp_group: string | null;
+  session_type: string;
+  price: number;
+  id_card: string | null;
+  track: string | null;
+  created_at: string;
+  notes: string | null;
+  completed: boolean | null;
+}
