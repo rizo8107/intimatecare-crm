@@ -14,6 +14,9 @@ import EbookAccessPage from './pages/EbookAccessPage';
 import TelegramCampaignPage from './pages/TelegramCampaignPage';
 import PaymentSubscriptionComparisonPage from './pages/PaymentSubscriptionComparisonPage';
 import StudentSessionPage from './pages/StudentSessionPage';
+import SessionSlotsPage from './pages/SessionSlotsPage';
+import StudentBookingsPage from './pages/StudentBookingsPage';
+import StudentBookingDetailsPage from './pages/StudentBookingDetailsPage';
 
 function App() {
   return (
@@ -32,6 +35,9 @@ function App() {
             <Route path="/telegram/payment-comparison" element={<PaymentSubscriptionComparisonPage />} />
             <Route path="/ebooks" element={<EbookAccessPage />} />
             <Route path="/sessions" element={<StudentSessionPage />} />
+            <Route path="/session-slots" element={<SessionSlotsPage />} />
+            <Route path="/bookings" element={<StudentBookingsPage />} />
+            <Route path="/bookings/:id" element={<StudentBookingDetailsPage />} />
             <Route path="/reports" element={<Dashboard />} />
             <Route path="/settings" element={<Dashboard />} />
             <Route path="*" element={<Navigate to="/" replace />} />

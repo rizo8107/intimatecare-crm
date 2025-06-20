@@ -1,4 +1,20 @@
-import { DashboardSummary, EbookAccess, Lead, LeadStatus, Note, PaymentData, StudentSession, Task, TelegramSubscription } from '../types';
+import { 
+  DashboardSummary, 
+  EbookAccess, 
+  Lead, 
+  LeadStatus, 
+  Note, 
+  PaymentData, 
+  StudentSession, 
+  Task, 
+  TelegramSubscription, 
+  SessionType, 
+  AvailableSlot, 
+  SlotStatus, 
+  Instructor,
+  StudentSessionForm,
+  StudentBooking
+} from '../types';
 
 const API_URL = 'https://crm-supabase.7za6uc.easypanel.host/rest/v1';
 const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzQ5ODM5NDAwLCJleHAiOjE5MDc2MDU4MDB9.sWCsUjb5xqDn6pIkPlhHScIHJ1ytr8rlTH-SdrHLuZE';
@@ -228,7 +244,6 @@ export async function createNote(note: Omit<Note, 'id' | 'createdAt'>): Promise<
       method: 'POST',
       body: JSON.stringify(newNote)
     });
-    
     return result[0];
   } catch (error) {
     console.error('Error creating note:', error);
@@ -724,6 +739,406 @@ export async function deleteStudentSession(id: string): Promise<void> {
     });
   } catch (error) {
     console.error(`Error deleting student session with ID ${id}:`, error);
+    throw error;
+  }
+}
+
+// ===== SESSION TYPES API =====
+
+export async function getSessionTypes(): Promise<SessionType[]> {
+  try {
+    const data = await fetchApi('session_types?order=name.asc');
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching session types:', error);
+    throw error;
+  }
+}
+
+export async function getSessionType(id: string): Promise<SessionType> {
+  try {
+    const data = await fetchApi(`session_types?id=eq.${id}&limit=1`);
+    if (!data || data.length === 0) {
+      throw new Error(`Session type with ID ${id} not found`);
+    }
+    return data[0];
+  } catch (error) {
+    console.error(`Error fetching session type with ID ${id}:`, error);
+    throw error;
+  }
+}
+
+export async function createSessionType(sessionTypeData: Omit<SessionType, 'id' | 'created_at'>): Promise<SessionType> {
+  try {
+    const data = await fetchApi('session_types', {
+      method: 'POST',
+      headers: {
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(sessionTypeData)
+    });
+    return data[0];
+  } catch (error) {
+    console.error('Error creating session type:', error);
+    throw error;
+  }
+}
+
+export async function updateSessionType(id: string, sessionTypeData: Partial<SessionType>): Promise<SessionType> {
+  try {
+    await fetchApi(`session_types?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(sessionTypeData)
+    });
+    return getSessionType(id);
+  } catch (error) {
+    console.error(`Error updating session type with ID ${id}:`, error);
+    throw error;
+  }
+}
+
+export async function deleteSessionType(id: string): Promise<void> {
+  try {
+    await fetchApi(`session_types?id=eq.${id}`, {
+      method: 'DELETE'
+    });
+  } catch (error) {
+    console.error(`Error deleting session type with ID ${id}:`, error);
+    throw error;
+  }
+}
+
+// ===== AVAILABLE SLOTS API =====
+
+export async function getAvailableSlots(): Promise<AvailableSlot[]> {
+  try {
+    const data = await fetchApi('available_slots?select=*,session_types(*),instructors!fk_available_slots_instructor_id(name)&order=slot_date.asc,start_time.asc');
+    return data?.map((slot: any) => ({
+      ...slot,
+      instructor_name: slot.instructors?.name || 'Unknown Instructor',
+      booking_status: slot.booking_status === 'true' || slot.booking_status === true
+    })) || [];
+  } catch (error) {
+    console.error('Error fetching available slots:', error);
+    throw error;
+  }
+}
+
+export async function getAvailableSlot(id: string): Promise<AvailableSlot> {
+  try {
+    const data = await fetchApi(`available_slots?id=eq.${id}&select=*,session_types(*),instructors!fk_available_slots_instructor_id(name)`);
+    if (!data || data.length === 0) {
+      throw new Error('Available slot not found');
+    }
+    return {
+      ...data[0],
+      instructor_name: data[0].instructors?.name || 'Unknown Instructor',
+      booking_status: data[0].booking_status === 'true' || data[0].booking_status === true
+    };
+  } catch (error) {
+    console.error('Error fetching available slot:', error);
+    throw error;
+  }
+}
+
+export async function createAvailableSlot(slot: Omit<AvailableSlot, 'id' | 'created_at' | 'updated_at' | 'instructor_name' | 'session_types'>): Promise<AvailableSlot> {
+  try {
+    const data = await fetchApi('available_slots', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...slot,
+        booking_status: slot.booking_status || false
+      })
+    });
+    return data[0];
+  } catch (error) {
+    console.error('Error creating available slot:', error);
+    throw error;
+  }
+}
+
+export async function updateAvailableSlot(id: string, slot: Partial<AvailableSlot>): Promise<AvailableSlot> {
+  try {
+    const data = await fetchApi(`available_slots?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        ...slot,
+        booking_status: slot.booking_status
+      })
+    });
+    return data[0];
+  } catch (error) {
+    console.error('Error updating available slot:', error);
+    throw error;
+  }
+}
+
+export async function deleteAvailableSlot(id: string): Promise<void> {
+  try {
+    await fetchApi(`available_slots?id=eq.${id}`, {
+      method: 'DELETE'
+    });
+  } catch (error) {
+    console.error('Error deleting available slot:', error);
+    throw error;
+  }
+}
+
+export async function getSlotsBySessionType(sessionTypeId: string): Promise<AvailableSlot[]> {
+  try {
+    const data = await fetchApi(
+      `available_slots?session_type_id=eq.${sessionTypeId}&select=*,session_types(*),instructors!fk_available_slots_instructor_id(name)&order=slot_date.asc,start_time.asc`
+    );
+    return data?.map((slot: any) => ({
+      ...slot,
+      instructor_name: slot.instructors?.name || 'Unknown Instructor',
+      booking_status: slot.booking_status === 'true' || slot.booking_status === true
+    })) || [];
+  } catch (error) {
+    console.error(`Error fetching slots for session type ${sessionTypeId}:`, error);
+    throw error;
+  }
+}
+
+// Get available slots by instructor
+export async function getAvailableSlotsByInstructor(instructorId: string): Promise<AvailableSlot[]> {
+  try {
+    const data = await fetchApi(`available_slots?instructor_id=eq.${instructorId}&select=*,session_types(*),instructors!fk_available_slots_instructor_id(name)&order=slot_date.asc,start_time.asc`);
+    return data?.map((slot: any) => ({
+      ...slot,
+      instructor_name: slot.instructors?.name || 'Unknown Instructor',
+      booking_status: slot.booking_status === 'true' || slot.booking_status === true
+    })) || [];
+  } catch (error) {
+    console.error('Error fetching available slots by instructor:', error);
+    throw error;
+  }
+}
+
+export async function getAvailableSlotsOnly(): Promise<AvailableSlot[]> {
+  try {
+    const data = await fetchApi(
+      'available_slots?status=eq.available&select=*,session_types(*),instructors!fk_available_slots_instructor_id(name)&order=slot_date.asc,start_time.asc'
+    );
+    return data?.map((slot: any) => ({
+      ...slot,
+      instructor_name: slot.instructors?.name || 'Unknown Instructor',
+      booking_status: slot.booking_status === 'true' || slot.booking_status === true
+    })) || [];
+  } catch (error) {
+    console.error('Error fetching available slots only:', error);
+    throw error;
+  }
+}
+
+// ====== INSTRUCTOR MANAGEMENT ======
+
+// Get all instructors
+export async function getInstructors(): Promise<Instructor[]> {
+  try {
+    const data = await fetchApi('instructors?order=name.asc');
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching instructors:', error);
+    throw error;
+  }
+}
+
+// Get active instructors only
+export async function getActiveInstructors(): Promise<Instructor[]> {
+  try {
+    const data = await fetchApi('instructors?is_active=eq.true&order=name.asc');
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching active instructors:', error);
+    throw error;
+  }
+}
+
+// Get instructor by ID
+export async function getInstructor(id: string): Promise<Instructor> {
+  try {
+    const data = await fetchApi(`instructors?id=eq.${id}`);
+    if (!data || data.length === 0) {
+      throw new Error(`Instructor with ID ${id} not found`);
+    }
+    return data[0];
+  } catch (error) {
+    console.error(`Error fetching instructor with ID ${id}:`, error);
+    throw error;
+  }
+}
+
+// Create new instructor
+export async function createInstructor(instructorData: Omit<Instructor, 'id' | 'created_at' | 'updated_at'>): Promise<Instructor> {
+  try {
+    const data = await fetchApi('instructors', {
+      method: 'POST',
+      headers: {
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(instructorData)
+    });
+    return data[0];
+  } catch (error) {
+    console.error('Error creating instructor:', error);
+    throw error;
+  }
+}
+
+// Update instructor
+export async function updateInstructor(id: string, instructorData: Partial<Instructor>): Promise<Instructor> {
+  try {
+    await fetchApi(`instructors?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(instructorData)
+    });
+    return getInstructor(id);
+  } catch (error) {
+    console.error(`Error updating instructor with ID ${id}:`, error);
+    throw error;
+  }
+}
+
+// Delete instructor
+export async function deleteInstructor(id: string): Promise<void> {
+  try {
+    await fetchApi(`instructors?id=eq.${id}`, {
+      method: 'DELETE'
+    });
+  } catch (error) {
+    console.error(`Error deleting instructor with ID ${id}:`, error);
+    throw error;
+  }
+}
+
+// Get instructor with their available slots
+export async function getInstructorWithSlots(instructorId: string): Promise<Instructor & { available_slots: AvailableSlot[] }> {
+  try {
+    // Use the specific foreign key relationship
+    const data = await fetchApi(`instructors?id=eq.${instructorId}&select=*,available_slots:available_slots!fk_available_slots_instructor_id(id,session_type_id,slot_date,start_time,end_time,status,session_types(*))`);
+    
+    if (!data || data.length === 0) {
+      throw new Error(`Instructor with ID ${instructorId} not found`);
+    }
+    
+    // Map the slots to include instructor_name
+    const instructor = data[0];
+    const slots = instructor.available_slots?.map((slot: any) => ({
+      ...slot,
+      instructor_name: instructor.name || 'Unknown Instructor',
+      booking_status: slot.booking_status === 'true' || slot.booking_status === true
+    })) || [];
+    
+    return {
+      ...instructor,
+      available_slots: slots
+    };
+  } catch (error) {
+    console.error(`Error fetching instructor with slots for ID ${instructorId}:`, error);
+    throw error;
+  }
+}
+
+// Student Session Form API
+export async function getStudentSessionForms(): Promise<StudentSessionForm[]> {
+  try {
+    const data = await fetchApi('student_session_form?order=created_at.desc');
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching student session forms:', error);
+    throw error;
+  }
+}
+
+export async function getStudentSessionForm(id: string): Promise<StudentSessionForm> {
+  try {
+    const data = await fetchApi(`student_session_form?id=eq.${id}`);
+    if (!data || data.length === 0) {
+      throw new Error('Student session form not found');
+    }
+    return data[0];
+  } catch (error) {
+    console.error('Error fetching student session form:', error);
+    throw error;
+  }
+}
+
+export async function getStudentSessionBySlot(slotDate: string, slotTime: string): Promise<StudentSessionForm | null> {
+  try {
+    const data = await fetchApi(`student_session_form?session_date=eq.${slotDate}&session_time=eq.${slotTime}`);
+    return data && data.length > 0 ? data[0] : null;
+  } catch (error) {
+    console.error('Error fetching student session by slot:', error);
+    return null;
+  }
+}
+
+export async function updateStudentSessionForm(id: string, form: Partial<StudentSessionForm>): Promise<StudentSessionForm> {
+  try {
+    const data = await fetchApi(`student_session_form?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(form)
+    });
+    return data[0];
+  } catch (error) {
+    console.error('Error updating student session form:', error);
+    throw error;
+  }
+}
+
+// Student Bookings API Functions
+export async function getStudentBookings(): Promise<StudentBooking[]> {
+  try {
+    const data = await fetchApi('student_bookings?select=*');
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching student bookings:', error);
+    throw error;
+  }
+}
+
+export async function getStudentBookingById(id: string): Promise<StudentBooking> {
+  try {
+    const data = await fetchApi(`student_bookings?id=eq.${id}`);
+    if (!data || data.length === 0) {
+      throw new Error(`Student booking with ID ${id} not found`);
+    }
+    return data[0];
+  } catch (error) {
+    console.error(`Error fetching student booking with ID ${id}:`, error);
+    throw error;
+  }
+}
+
+export async function updateBookingStatus(id: string, status: 'BOOKED' | 'CANCELLED' | 'COMPLETED'): Promise<StudentBooking> {
+  try {
+    const data = await fetchApi(`student_bookings?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status })
+    });
+    return data[0];
+  } catch (error) {
+    console.error(`Error updating booking status for ID ${id}:`, error);
+    throw error;
+  }
+}
+
+export async function updateMeetingLink(id: string, meetingLink: string): Promise<StudentBooking> {
+  try {
+    const data = await fetchApi(`student_bookings?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ meeting_link: meetingLink })
+    });
+    return data[0];
+  } catch (error) {
+    console.error(`Error updating meeting link for booking ID ${id}:`, error);
     throw error;
   }
 }

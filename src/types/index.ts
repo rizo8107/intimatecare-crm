@@ -121,3 +121,105 @@ export interface StudentSession {
   notes: string | null;
   completed: boolean | null;
 }
+
+// Session Slots Management Types
+export interface SessionType {
+  id: string;
+  name: string;
+  description: string | null;
+  duration_minutes: number;
+  price: number | null;
+  created_at: string;
+}
+
+export type SlotStatus = 'available' | 'booked' | 'unavailable';
+
+export interface AvailableSlot {
+  id: string;
+  instructor_id: string;
+  session_type_id: string;
+  slot_date: string;
+  start_time: string;
+  end_time: string;
+  status: SlotStatus;
+  created_at: string;
+  updated_at?: string;
+  instructor_name?: string;
+  session_types?: SessionType;
+  booking_status: boolean;
+}
+
+export interface StudentSessionForm {
+  id: string;
+  name: string;
+  gender: string;
+  email: string;
+  phone: string;
+  college: string;
+  course_and_year: string;
+  academic_year: string;
+  location: string;
+  session_date: string;
+  session_time: string;
+  what_brings_to_session?: string;
+  hope_to_gain?: string;
+  specific_topics?: string;
+  spoken_to_someone_before: string;
+  looking_for?: string;
+  anything_else?: string;
+  join_whatsapp_group?: string;
+  session_type: string;
+  price: string;
+  id_card: string;
+  track?: string;
+  created_at: string;
+  notes?: string;
+  completed?: string;
+}
+
+export interface Instructor {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  specialization?: string;
+  bio?: string;
+  hourly_rate?: number;
+  is_active: boolean;
+  profile_image_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StudentBooking {
+  id: string;
+  name: string;
+  gender: string;
+  email: string;
+  phone: string;
+  college: string;
+  course_and_year: string;
+  location: string;
+  id_card_filename?: string;
+  id_card_url?: string;
+  session_type: string;
+  preferred_date: string;
+  preferred_time: string;
+  slot_id?: string;
+  brings_to_session?: string;
+  hopes_to_gain?: string;
+  specific_topics?: string;
+  spoken_to_someone?: string;
+  looking_for?: string;
+  anything_else?: string;
+  join_whatsapp_channel?: string;
+  price: number;
+  payment_status: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
+  cf_order_id?: string;
+  cf_payment_id?: string;
+  payment_timestamp?: string;
+  created_at: string;
+  updated_at: string;
+  status: 'PENDING' | 'BOOKED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+  meeting_link?: string;
+}

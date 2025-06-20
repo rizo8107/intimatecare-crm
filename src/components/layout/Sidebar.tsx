@@ -13,7 +13,8 @@ import {
   BookOpen,
   ChevronDown,
   Send,
-  GraduationCap
+  GraduationCap,
+  CalendarCheck
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { Dialog, Transition } from '@headlessui/react';
@@ -72,6 +73,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       name: 'Student Sessions', 
       path: '/sessions', 
       icon: <GraduationCap size={20} />
+    },
+    { 
+      name: 'Session Slots', 
+      path: '/session-slots', 
+      icon: <Calendar size={20} />
+    },
+    { 
+      name: 'Bookings', 
+      path: '/bookings', 
+      icon: <CalendarCheck size={20} />
     },
     { 
       name: 'Ebooks', 
