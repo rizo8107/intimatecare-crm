@@ -50,9 +50,20 @@ const SimpleCalendar: React.FC<SimpleCalendarProps> = ({ slots, onDateSelect }) 
     return eachDayOfInterval({ start: startDate, end: endDate });
   }, [currentMonth]);
 
-  // Check if a date has any slots
+  // Check if a date has any slots and their booking status
   const hasSlots = (date: Date) => {
     return slots.some(slot => isSameDay(new Date(slot.slot_date), date));
+  };
+  
+  // Check if a date has any booked slots
+  const hasBookedSlots = (date: Date) => {
+    return slots.some(slot => isSameDay(new Date(slot.slot_date), date) && slot.booking_status);
+  };
+  
+  // Check if a date has only available slots (no booked slots)
+  const hasOnlyAvailableSlots = (date: Date) => {
+    const dateSlots = slots.filter(slot => isSameDay(new Date(slot.slot_date), date));
+    return dateSlots.length > 0 && !dateSlots.some(slot => slot.booking_status);
   };
 
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -90,7 +101,6 @@ const SimpleCalendar: React.FC<SimpleCalendarProps> = ({ slots, onDateSelect }) 
           const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
           const isToday = isSameDay(day, new Date());
           const isSelected = isSameDay(day, selectedDate);
-          const hasAvailableSlots = hasSlots(day);
           
           return (
             <button
@@ -104,8 +114,9 @@ const SimpleCalendar: React.FC<SimpleCalendarProps> = ({ slots, onDateSelect }) 
                 ${!isCurrentMonth ? 'text-gray-300' : ''}
                 ${isToday ? 'border border-blue-500' : ''}
                 ${isSelected ? 'bg-blue-500 text-white' : ''}
-                ${hasAvailableSlots && !isSelected ? 'bg-green-100 text-green-800 font-medium' : ''}
-                ${isCurrentMonth && !isSelected && !isToday && !hasAvailableSlots ? 'hover:bg-gray-100' : ''}
+                ${hasOnlyAvailableSlots(day) && !isSelected ? 'bg-green-100 text-green-800 font-medium' : ''}
+                ${hasBookedSlots(day) && !isSelected ? 'bg-red-100 text-red-800 font-medium' : ''}
+                ${isCurrentMonth && !isSelected && !isToday && !hasSlots(day) ? 'hover:bg-gray-100' : ''}
               `}
             >
               {format(day, 'd')}
@@ -266,11 +277,14 @@ const SessionSlotsPage: React.FC = () => {
         booking_status: false
       });
       await loadData();
-      setShowSlotModal(false);
+      setShowSlotModal(false); // Close the modal
       resetSlotForm();
     } catch (err) {
       setError('Failed to create slot. Please try again.');
       console.error('Error creating slot:', err);
+    } finally {
+      // Ensure the modal closes even if there's an error with loadData
+      setShowSlotModal(false);
     }
   };
 
@@ -630,8 +644,9 @@ const SessionSlotsPage: React.FC = () => {
                           id={`slot-${slot.id}`}
                         >
                           <Card 
-                            className={`hover:shadow-md transition-shadow border-l-4 ${isSameDay(new Date(slot.slot_date), new Date()) ? 'border-l-blue-500 bg-blue-50' : 'border-l-green-500'}`}>
+                            className={`hover:shadow-md transition-shadow border-l-4 ${isSameDay(new Date(slot.slot_date), new Date()) ? 'border-l-blue-500 bg-blue-50' : slot.booking_status ? 'border-l-red-500' : 'border-l-green-500'}`}>
                           <CardHeader className={`pb-3 ${
+                            slot.booking_status ? 'bg-red-50' :
                             slot.status === 'available' ? 'bg-green-50' : 
                             slot.status === 'booked' ? 'bg-blue-50' : 'bg-gray-50'
                           }`}>
@@ -641,11 +656,12 @@ const SessionSlotsPage: React.FC = () => {
                                 {formatDate(slot.slot_date)}
                               </div>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                slot.booking_status ? 'bg-red-100 text-red-800' :
                                 slot.status === 'available' ? 'bg-green-100 text-green-800' :
                                 slot.status === 'booked' ? 'bg-blue-100 text-blue-800' :
                                 'bg-gray-100 text-gray-800'
                               }`}>
-                                {slot.status}
+                                {slot.booking_status ? 'Booked' : slot.status}
                               </span>
                             </div>
                           </CardHeader>
@@ -1196,7 +1212,10 @@ const SessionSlotsPage: React.FC = () => {
                     } catch (err) {
                       setError('Failed to update slot');
                     }
-                  } : handleCreateSlot}
+                  } : async (e) => {
+                    e.preventDefault();
+                    await handleCreateSlot();
+                  }}
                   className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2"
                 >
                   <Save className="w-4 h-4" />
