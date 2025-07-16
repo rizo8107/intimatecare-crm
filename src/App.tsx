@@ -1,5 +1,3 @@
-// React is needed for JSX even if not explicitly used
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import Layout from './components/layout/Layout';
@@ -17,6 +15,7 @@ import StudentSessionPage from './pages/StudentSessionPage';
 import SessionSlotsPage from './pages/SessionSlotsPage';
 import StudentBookingsPage from './pages/StudentBookingsPage';
 import StudentBookingDetailsPage from './pages/StudentBookingDetailsPage';
+import InstructorsPage from './pages/InstructorsPage';
 
 function App() {
   return (
@@ -35,7 +34,8 @@ function App() {
             <Route path="/telegram/payment-comparison" element={<PaymentSubscriptionComparisonPage />} />
             <Route path="/ebooks" element={<EbookAccessPage />} />
             <Route path="/sessions" element={<StudentSessionPage />} />
-            <Route path="/session-slots" element={<SessionSlotsPage />} />
+                        <Route path="/session-slots" element={<SessionSlotsPage />} />
+            <Route path="/instructors" element={<InstructorsPage />} />
             <Route path="/bookings" element={<StudentBookingsPage />} />
             <Route path="/bookings/:id" element={<StudentBookingDetailsPage />} />
             <Route path="/reports" element={<Dashboard />} />

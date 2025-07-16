@@ -16,19 +16,18 @@ import {
 } from 'lucide-react';
 import { 
   getSessionTypes, 
-  createSessionType, 
-  updateSessionType, 
-  deleteSessionType,
-  getAvailableSlots,
-  createAvailableSlot,
-  updateAvailableSlot,
-  deleteAvailableSlot,
+  getAvailableSlots, 
   getActiveInstructors,
   getStudentSessionBySlot,
-  getStudentSessionForm
+  createSessionType,
+  updateSessionType,
+  deleteSessionType,
+  createAvailableSlot,
+  updateAvailableSlot,
+  deleteAvailableSlot
 } from '../services/api';
-import { SessionType, AvailableSlot, SlotStatus, Instructor, StudentSessionForm } from '../types';
-import { format, addDays, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, startOfWeek, endOfWeek } from 'date-fns';
+import { SessionType, AvailableSlot, Instructor, SlotStatus } from '../types';
+import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, startOfWeek, endOfWeek } from 'date-fns';
 
 // Simple Calendar Component
 interface SimpleCalendarProps {
@@ -137,20 +136,19 @@ const SessionSlotsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'types' | 'slots'>('slots');
   
-  // Filters and search
+  // State for filters and search
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<SlotStatus | 'all'>('all');
-  const [selectedSessionType, setSelectedSessionType] = useState<string>('all');
-
-  // Modal states
+  const [selectedSessionType, setSelectedSessionType] = useState('all');
+  const [selectedInstructorFilter, setSelectedInstructorFilter] = useState('all');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showOnlySelectedDate, setShowOnlySelectedDate] = useState(false);
+  const [showCalendarView, setShowCalendarView] = useState(false);
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [showSlotModal, setShowSlotModal] = useState(false);
-  const [showCalendarView, setShowCalendarView] = useState(false);
   const [selectedInstructorGroup, setSelectedInstructorGroup] = useState<string | null>(null);
   const [editingType, setEditingType] = useState<SessionType | null>(null);
   const [editingSlot, setEditingSlot] = useState<AvailableSlot | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [showOnlySelectedDate, setShowOnlySelectedDate] = useState(false);
 
   // Form data
   const [typeFormData, setTypeFormData] = useState({
@@ -189,7 +187,7 @@ const SessionSlotsPage: React.FC = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [availableSlots, searchTerm, statusFilter, selectedSessionType]);
+  }, [availableSlots, searchTerm, statusFilter, selectedSessionType, selectedInstructorFilter]);
 
   const loadData = async () => {
     try {
@@ -217,10 +215,16 @@ const SessionSlotsPage: React.FC = () => {
 
     if (searchTerm) {
       const lowerSearchTerm = searchTerm.toLowerCase();
-      filtered = filtered.filter(slot => 
-        slot.instructor_name?.toLowerCase().includes(lowerSearchTerm) ||
-        slot.session_types?.name.toLowerCase().includes(lowerSearchTerm)
-      );
+      filtered = filtered.filter(slot => {
+        const instructor = instructors.find(i => i.id === slot.instructor_id);
+        return (
+          slot.instructor_name?.toLowerCase().includes(lowerSearchTerm) ||
+          instructor?.name.toLowerCase().includes(lowerSearchTerm) ||
+          instructor?.specialization?.toLowerCase().includes(lowerSearchTerm) ||
+          instructor?.email?.toLowerCase().includes(lowerSearchTerm) ||
+          slot.session_types?.name?.toLowerCase().includes(lowerSearchTerm)
+        );
+      });
     }
 
     if (statusFilter !== 'all') {
@@ -229,6 +233,10 @@ const SessionSlotsPage: React.FC = () => {
 
     if (selectedSessionType !== 'all') {
       filtered = filtered.filter(slot => slot.session_type_id === selectedSessionType);
+    }
+    
+    if (selectedInstructorFilter !== 'all') {
+      filtered = filtered.filter(slot => slot.instructor_id === selectedInstructorFilter);
     }
 
     setFilteredSlots(filtered);
@@ -462,6 +470,28 @@ const SessionSlotsPage: React.FC = () => {
                 </select>
               </div>
 
+              {/* Instructor Filter Dropdown */}
+              <div className="w-1/4 px-2">
+                <label htmlFor="instructor-filter" className="block text-xs font-medium text-gray-700 mb-1">Instructor</label>
+                <select
+                  id="instructor-filter"
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  value={selectedInstructorFilter}
+                  onChange={(e) => {
+                    setSelectedInstructorFilter(e.target.value);
+                    setSelectedInstructorGroup(null);
+                    setShowCalendarView(false);
+                  }}
+                >
+                  <option value="all">All Instructors</option>
+                  {instructors.map(instructor => (
+                    <option key={instructor.id} value={instructor.id}>
+                      {instructor.name} - {instructor.specialization || 'No specialization'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Session Type</label>
                 <select
@@ -530,10 +560,13 @@ const SessionSlotsPage: React.FC = () => {
                           {group.instructor?.specialization && (
                             <p className="text-xs text-blue-600 mt-1">{group.instructor.specialization}</p>
                           )}
+                          {group.instructor?.email && (
+                            <p className="text-xs text-gray-500 mt-1">{group.instructor.email}</p>
+                          )}
                         </div>
                         <div className="text-right">
-                          {group.instructor?.hourly_rate && (
-                            <p className="text-sm font-medium text-green-600">${group.instructor.hourly_rate}/hr</p>
+                          {group.instructor?.email && (
+                            <p className="text-sm font-medium text-blue-600">{group.instructor.email}</p>
                           )}
                           <p className="text-xs text-gray-500">Click to view calendar</p>
                         </div>
@@ -574,22 +607,17 @@ const SessionSlotsPage: React.FC = () => {
               selectedInstructorGroup && (
                 <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                   <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 rounded-t-lg">
-                    <div className="flex justify-between items-center">
-                      <h2 className="text-xl font-semibold">
-                        {instructorGroups[selectedInstructorGroup]?.instructor_name}'s Available Slots
-                      </h2>
-                      <button
-                        onClick={() => setShowCalendarView(false)}
-                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                      >
-                        <ChevronLeft className="w-4 h-4" /> Back to Instructors
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="p-6">
-                    {/* Calendar Component */}
-                    <div className="mb-8 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="bg-white p-6 rounded-lg shadow-sm">              
+                      <h3 className="text-xl font-semibold mb-4 text-center text-blue-700">
+                        {selectedInstructorGroup ? 
+                          `${instructorGroups[selectedInstructorGroup]?.instructor?.name}'s Calendar` : 
+                          'Full Calendar View'}
+                      </h3>
+                      {selectedInstructorGroup && instructorGroups[selectedInstructorGroup]?.instructor?.specialization && (
+                        <div className="text-center text-sm text-gray-600 mb-4">
+                          <span className="font-medium">Specialization:</span> {instructorGroups[selectedInstructorGroup].instructor?.specialization}
+                        </div>
+                      )}
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="text-md font-medium">Available Dates</h3>
                         {selectedDate && (
@@ -672,18 +700,20 @@ const SessionSlotsPage: React.FC = () => {
                                 {formatTime12Hour(slot.start_time)} - {formatTime12Hour(slot.end_time)}
                               </div>
                               <div className="text-sm font-medium text-gray-900">
-                                {slot.session_types?.name || 'Unknown Session Type'}
+                                {sessionTypes.find(type => type.id === slot.session_type_id)?.name || 'Unknown Session Type'}
                               </div>
-                              {slot.session_types?.duration_minutes && (
+                              {/* Display session type duration */}
+                              {sessionTypes.find(type => type.id === slot.session_type_id)?.duration_minutes && (
                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                   <Clock className="w-4 h-4" />
-                                  {slot.session_types.duration_minutes} minutes
+                                  {sessionTypes.find(type => type.id === slot.session_type_id)?.duration_minutes} minutes
                                 </div>
                               )}
-                              {slot.session_types?.price && (
+                              {/* Display session type price */}
+                              {sessionTypes.find(type => type.id === slot.session_type_id)?.price && (
                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                   <DollarSign className="w-4 h-4" />
-                                  ${slot.session_types.price}
+                                  ${sessionTypes.find(type => type.id === slot.session_type_id)?.price}
                                 </div>
                               )}
                             </div>
@@ -727,9 +757,10 @@ const SessionSlotsPage: React.FC = () => {
                               {(slot.booking_status || slot.status === 'booked') && (
                                 <button
                                   onClick={async (e) => {
-                                    e.stopPropagation();
-                                    const studentSession = await getStudentSessionBySlot(slot.id);
-                                    if (studentSession) {
+                                  e.stopPropagation();
+                                  // Pass slot date and time to get student session
+                                  const studentSession = await getStudentSessionBySlot(slot.slot_date, slot.start_time);
+                                  if (studentSession) {
                                       alert(`Student: ${studentSession.name}\nEmail: ${studentSession.email}\nPhone: ${studentSession.phone}\nCollege: ${studentSession.college}\nSession Type: ${studentSession.session_type}\nDate: ${studentSession.session_date}\nTime: ${studentSession.session_time}`);
                                     } else {
                                       alert('No student session details found for this slot.');
@@ -1137,6 +1168,7 @@ const SessionSlotsPage: React.FC = () => {
                               : 'bg-white border-gray-200 hover:bg-gray-100'
                           }`}
                           onClick={() => {
+                          if (setShowSlotModal) setShowSlotModal(false);
                             const newSelected = new Set(selectedSlots);
                             if (newSelected.has(index)) {
                               newSelected.delete(index);

@@ -80,6 +80,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       icon: <Calendar size={20} />
     },
     { 
+      name: 'Instructors', 
+      path: '/instructors', 
+      icon: <Users size={20} />
+    },
+    { 
       name: 'Bookings', 
       path: '/bookings', 
       icon: <CalendarCheck size={20} />

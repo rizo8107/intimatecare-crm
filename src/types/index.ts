@@ -77,7 +77,7 @@ export interface EbookAccess {
   user_name: string;
   payment_id: string;
   amount: number;
-  created_at: string;
+  created_at?: string;
   // Fields for data linking
   phone_number?: string; // Added to link with telegram subscriptions
   leadId?: string; // Reference to associated lead
@@ -117,7 +117,7 @@ export interface StudentSession {
   price: number;
   id_card: string | null;
   track: string | null;
-  created_at: string;
+  created_at?: string;
   notes: string | null;
   completed: boolean | null;
 }
@@ -129,7 +129,7 @@ export interface SessionType {
   description: string | null;
   duration_minutes: number;
   price: number | null;
-  created_at: string;
+  created_at?: string;
 }
 
 export type SlotStatus = 'available' | 'booked' | 'unavailable';
@@ -142,7 +142,7 @@ export interface AvailableSlot {
   start_time: string;
   end_time: string;
   status: SlotStatus;
-  created_at: string;
+  created_at?: string;
   updated_at?: string;
   instructor_name?: string;
   session_types?: SessionType;
@@ -152,43 +152,86 @@ export interface AvailableSlot {
 export interface StudentSessionForm {
   id: string;
   name: string;
-  gender: string;
   email: string;
   phone: string;
   college: string;
-  course_and_year: string;
-  academic_year: string;
+  course: string;
   location: string;
+  gender: string;
+  session_type: string;
   session_date: string;
   session_time: string;
-  what_brings_to_session?: string;
-  hope_to_gain?: string;
-  specific_topics?: string;
-  spoken_to_someone_before: string;
-  looking_for?: string;
-  anything_else?: string;
-  join_whatsapp_group?: string;
-  session_type: string;
-  price: string;
-  id_card: string;
-  track?: string;
-  created_at: string;
-  notes?: string;
-  completed?: string;
+  price: number;
+  notes: string;
+  id_card_url: string;
+  created_at?: string;
 }
 
+// Instructor Content Management Types
 export interface Instructor {
-  id: string;
+  id: string; // UUID
   name: string;
   email: string;
   phone?: string;
   specialization?: string;
   bio?: string;
-  hourly_rate?: number;
-  is_active: boolean;
+  experience?: string;
   profile_image_url?: string;
-  created_at: string;
-  updated_at: string;
+  is_active?: boolean;
+  highlight_color?: string;
+  secondary_color?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface InstructorHighlight {
+  id?: number;
+  instructor_id: string;
+  title: string;
+  icon_name?: string;
+  icon_color?: string;
+  display_order?: number;
+}
+
+export interface InstructorSupportArea {
+  id?: number;
+  instructor_id: string;
+  category: string;
+  title: string;
+  description?: string;
+  icon_name?: string;
+  display_order?: number;
+}
+
+export interface InstructorOffering {
+  id?: number;
+  instructor_id: string;
+  title: string;
+  description?: string;
+  icon_name?: string;
+  display_order?: number;
+}
+
+export interface PageSection {
+  id?: number;
+  instructor_id: string;
+  section_type: string; // 'intro', 'about', 'services', etc.
+  title: string;
+  subtitle?: string;
+  content?: string;
+  display_order?: number;
+  // Using display_order instead of position as per our field access
+}
+
+export interface Testimonial {
+  id?: number;
+  instructor_id: string;
+  client_name: string;
+  client_description?: string; // Using this instead of client_role
+  content: string;
+  rating?: number;
+  // Adding fields used in the form
+  image_url?: string;
 }
 
 export interface StudentBooking {
@@ -218,8 +261,8 @@ export interface StudentBooking {
   cf_order_id?: string;
   cf_payment_id?: string;
   payment_timestamp?: string;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
   status: 'PENDING' | 'BOOKED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
   meeting_link?: string;
 }

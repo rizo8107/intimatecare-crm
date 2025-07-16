@@ -10,8 +10,11 @@ import {
   TelegramSubscription, 
   SessionType, 
   AvailableSlot, 
-  SlotStatus, 
+
   Instructor,
+  InstructorHighlight,
+  InstructorSupportArea,
+  InstructorOffering,
   StudentSessionForm,
   StudentBooking
 } from '../types';
@@ -25,6 +28,20 @@ const headers = {
   'Content-Type': 'application/json',
   'Accept': 'application/json'
 };
+
+// Instructor Content Management - Related Content
+
+export async function createInstructorHighlight(highlightData: Omit<InstructorHighlight, 'id'>): Promise<InstructorHighlight> {
+  return fetchApi('instructor_highlights', { method: 'POST', body: JSON.stringify(highlightData) });
+}
+
+export async function createInstructorSupportArea(supportAreaData: Omit<InstructorSupportArea, 'id'>): Promise<InstructorSupportArea> {
+  return fetchApi('instructor_support_areas', { method: 'POST', body: JSON.stringify(supportAreaData) });
+}
+
+export async function createInstructorOffering(offeringData: Omit<InstructorOffering, 'id'>): Promise<InstructorOffering> {
+  return fetchApi('instructor_offerings', { method: 'POST', body: JSON.stringify(offeringData) });
+}
 
 // Helper function to make API requests
 async function fetchApi(endpoint: string, options: RequestInit = {}) {
@@ -815,10 +832,14 @@ export async function deleteSessionType(id: string): Promise<void> {
 
 export async function getAvailableSlots(): Promise<AvailableSlot[]> {
   try {
-    const data = await fetchApi('available_slots?select=*,session_types(*),instructors!fk_available_slots_instructor_id(name)&order=slot_date.asc,start_time.asc');
+    // Get slots without trying to join with instructors or session_types
+    const data = await fetchApi('available_slots?select=*&order=slot_date.asc,start_time.asc');
+    
+    // If we need instructor information, we'll need to fetch it separately
+    // since there's no foreign key relationship in the database
     return data?.map((slot: any) => ({
       ...slot,
-      instructor_name: slot.instructors?.name || 'Unknown Instructor',
+      instructor_name: 'Instructor', // Default since we can't join
       booking_status: slot.booking_status === 'true' || slot.booking_status === true
     })) || [];
   } catch (error) {
@@ -903,17 +924,90 @@ export async function getSlotsBySessionType(sessionTypeId: string): Promise<Avai
   }
 }
 
-// Get available slots by instructor
+// Get available slots by instructor ID
 export async function getAvailableSlotsByInstructor(instructorId: string): Promise<AvailableSlot[]> {
   try {
-    const data = await fetchApi(`available_slots?instructor_id=eq.${instructorId}&select=*,session_types(*),instructors!fk_available_slots_instructor_id(name)&order=slot_date.asc,start_time.asc`);
-    return data?.map((slot: any) => ({
+    // Use foreign key relationship to filter
+    const data = await fetchApi(`available_slots?instructor_id=eq.${instructorId}&order=slot_date.asc,start_time.asc`);
+    return (data?.map((slot: any) => ({
       ...slot,
-      instructor_name: slot.instructors?.name || 'Unknown Instructor',
       booking_status: slot.booking_status === 'true' || slot.booking_status === true
-    })) || [];
+    })) || []);
   } catch (error) {
-    console.error('Error fetching available slots by instructor:', error);
+    console.error('Error fetching available slots only:', error);
+    throw error;
+  }
+}
+
+// ====== INSTRUCTOR SESSION TYPES MANAGEMENT ======
+
+// Create session types for an instructor
+export async function createInstructorSessionTypes(instructorId: string, sessionTypes: Omit<SessionType, 'id' | 'created_at' | 'updated_at' | 'instructor_id'>[]) {
+  try {
+    const sessionTypesWithInstructorId = sessionTypes.map(sessionType => ({
+      ...sessionType,
+      instructor_id: instructorId
+    }));
+    
+    const data = await fetchApi('session_types', {
+      method: 'POST',
+      headers: {
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(sessionTypesWithInstructorId)
+    });
+    
+    return data;
+  } catch (error) {
+    console.error('Error creating instructor session types:', error);
+    throw error;
+  }
+}
+
+// Get session types for an instructor
+export async function getInstructorSessionTypes(instructorId: string): Promise<SessionType[]> {
+  try {
+    const data = await fetchApi(`session_types?instructor_id=eq.${instructorId}&order=name.asc`);
+    return data || [];
+  } catch (error) {
+    console.error(`Error fetching session types for instructor ${instructorId}:`, error);
+    throw error;
+  }
+}
+
+// Update session types for an instructor
+export async function updateInstructorSessionTypes(instructorId: string, sessionTypes: Partial<SessionType>[]) {
+  try {
+    const sessionTypesWithInstructorId = sessionTypes.map(sessionType => ({
+      ...sessionType,
+      instructor_id: instructorId
+    }));
+    
+    const data = await fetchApi('session_types', {
+      method: 'PATCH',
+      headers: {
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(sessionTypesWithInstructorId)
+    });
+    
+    return data;
+  } catch (error) {
+    console.error(`Error updating session types for instructor ${instructorId}:`, error);
+    throw error;
+  }
+}
+
+// Delete session types for an instructor
+export async function deleteInstructorSessionTypes(instructorId: string, sessionTypeIds: string[]) {
+  try {
+    const promises = sessionTypeIds.map(sessionTypeId => fetchApi(`session_types?id=eq.${sessionTypeId}`, {
+      method: 'DELETE'
+    }));
+    
+    await Promise.all(promises);
+  } catch (error) {
+    console.error(`Error deleting session types for instructor ${instructorId}:`, error);
     throw error;
   }
 }
@@ -947,10 +1041,10 @@ export async function getInstructors(): Promise<Instructor[]> {
   }
 }
 
-// Get active instructors only
+// Get all instructors (is_active column doesn't exist in database yet)
 export async function getActiveInstructors(): Promise<Instructor[]> {
   try {
-    const data = await fetchApi('instructors?is_active=eq.true&order=name.asc');
+    const data = await fetchApi('instructors?order=name.asc');
     return data || [];
   } catch (error) {
     console.error('Error fetching active instructors:', error);
@@ -1089,6 +1183,186 @@ export async function updateStudentSessionForm(id: string, form: Partial<Student
     return data[0];
   } catch (error) {
     console.error('Error updating student session form:', error);
+    throw error;
+  }
+}
+
+// ====== INSTRUCTOR HIGHLIGHTS MANAGEMENT ======
+
+// Create highlights for an instructor
+export async function createInstructorHighlights(instructorId: string, highlights: Omit<InstructorHighlight, 'id' | 'created_at' | 'updated_at' | 'instructor_id'>[]) {
+  try {
+    const highlightsWithInstructorId = highlights.map(highlight => ({
+      ...highlight,
+      instructor_id: instructorId
+    }));
+    
+    const data = await fetchApi('instructor_highlights', {
+      method: 'POST',
+      headers: {
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(highlightsWithInstructorId)
+    });
+    
+    return data;
+  } catch (error) {
+    console.error('Error creating instructor highlights:', error);
+    throw error;
+  }
+}
+
+// Get highlights for an instructor
+export async function getInstructorHighlights(instructorId: string): Promise<InstructorHighlight[]> {
+  try {
+    const data = await fetchApi(`instructor_highlights?instructor_id=eq.${instructorId}&order=display_order.asc`);
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching instructor highlights:', error);
+    throw error;
+  }
+}
+
+// ====== INSTRUCTOR SUPPORT AREAS MANAGEMENT ======
+
+// Create support areas for an instructor
+export async function createInstructorSupportAreas(instructorId: string, supportAreas: Omit<SupportArea, 'id' | 'created_at' | 'updated_at' | 'instructor_id'>[]) {
+  try {
+    const areasWithInstructorId = supportAreas.map(area => ({
+      ...area,
+      instructor_id: instructorId
+    }));
+    
+    const data = await fetchApi('instructor_support_areas', {
+      method: 'POST',
+      headers: {
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(areasWithInstructorId)
+    });
+    
+    return data;
+  } catch (error) {
+    console.error('Error creating instructor support areas:', error);
+    throw error;
+  }
+}
+
+// Get support areas for an instructor
+export async function getInstructorSupportAreas(instructorId: string): Promise<SupportArea[]> {
+  try {
+    const data = await fetchApi(`instructor_support_areas?instructor_id=eq.${instructorId}&order=display_order.asc`);
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching instructor support areas:', error);
+    throw error;
+  }
+}
+
+// ====== INSTRUCTOR OFFERINGS MANAGEMENT ======
+
+// Create offerings for an instructor
+export async function createInstructorOfferings(instructorId: string, offerings: Omit<InstructorOffering, 'id' | 'created_at' | 'updated_at' | 'instructor_id'>[]) {
+  try {
+    const offeringsWithInstructorId = offerings.map(offering => ({
+      ...offering,
+      instructor_id: instructorId
+    }));
+    
+    const data = await fetchApi('instructor_offerings', {
+      method: 'POST',
+      headers: {
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(offeringsWithInstructorId)
+    });
+    
+    return data;
+  } catch (error) {
+    console.error('Error creating instructor offerings:', error);
+    throw error;
+  }
+}
+
+// Get offerings for an instructor
+export async function getInstructorOfferings(instructorId: string): Promise<InstructorOffering[]> {
+  try {
+    const data = await fetchApi(`instructor_offerings?instructor_id=eq.${instructorId}&order=display_order.asc`);
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching instructor offerings:', error);
+    throw error;
+  }
+}
+
+// ====== INSTRUCTOR PAGE SECTIONS MANAGEMENT ======
+
+// Create page sections for an instructor
+export async function createInstructorPageSections(instructorId: string, pageSections: Omit<PageSection, 'id' | 'created_at' | 'updated_at' | 'instructor_id'>[]) {
+  try {
+    const sectionsWithInstructorId = pageSections.map(section => ({
+      ...section,
+      instructor_id: instructorId
+    }));
+    
+    const data = await fetchApi('instructor_page_sections', {
+      method: 'POST',
+      headers: {
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(sectionsWithInstructorId)
+    });
+    
+    return data;
+  } catch (error) {
+    console.error('Error creating instructor page sections:', error);
+    throw error;
+  }
+}
+
+// Get page sections for an instructor
+export async function getInstructorPageSections(instructorId: string): Promise<PageSection[]> {
+  try {
+    const data = await fetchApi(`instructor_page_sections?instructor_id=eq.${instructorId}&order=display_order.asc`);
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching instructor page sections:', error);
+    throw error;
+  }
+}
+
+// ====== INSTRUCTOR TESTIMONIALS MANAGEMENT ======
+
+// Create testimonials for an instructor
+export async function createInstructorTestimonials(instructorId: string, testimonials: Omit<Testimonial, 'id' | 'created_at' | 'updated_at' | 'instructor_id'>[]) {
+  try {
+    const testimonialsWithInstructorId = testimonials.map(testimonial => ({
+      ...testimonial,
+      instructor_id: instructorId
+    }));
+    
+    const data = await fetchApi('instructor_testimonials', {
+      method: 'POST',
+      headers: {
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(testimonialsWithInstructorId)
+    });
+    
+    return data;
+  } catch (error) {
+    console.error('Error creating instructor testimonials:', error);
+    throw error;
+  }
+}
+
+// Get testimonials for an instructor
+export async function getInstructorTestimonials(instructorId: string): Promise<Testimonial[]> {
+  try {
+    const data = await fetchApi(`instructor_testimonials?instructor_id=eq.${instructorId}&order=id.asc`);
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching instructor testimonials:', error);
     throw error;
   }
 }
