@@ -1,18 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2, 
-  Clock, 
-  Calendar as CalendarIcon, 
-  ChevronLeft, 
-  ChevronRight,
-  Eye,
-  DollarSign,
-  X,
-  Save
+  PlusCircle, Calendar, ChevronDown, ChevronLeft, ChevronRight, Save, X, Edit, Trash2, Eye, Search, Check, Filter,
+  User, Mail, Phone, GraduationCap, MapPin, BookOpen, Clock, CreditCard, DollarSign,
+  Tag, HelpCircle, Target, List, MessageCircle, Info, ExternalLink, Video
 } from 'lucide-react';
 import { 
   getSessionTypes, 
@@ -144,8 +135,10 @@ const SessionSlotsPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showOnlySelectedDate, setShowOnlySelectedDate] = useState(false);
   const [showCalendarView, setShowCalendarView] = useState(false);
-  const [showTypeModal, setShowTypeModal] = useState(false);
-  const [showSlotModal, setShowSlotModal] = useState(false);
+  const [showTypeModal, setShowTypeModal] = useState<boolean>(false);
+  const [showSlotModal, setShowSlotModal] = useState<boolean>(false);
+  const [showStudentSessionModal, setShowStudentSessionModal] = useState<boolean>(false);
+  const [currentStudentSession, setCurrentStudentSession] = useState<any>(null);
   const [selectedInstructorGroup, setSelectedInstructorGroup] = useState<string | null>(null);
   const [editingType, setEditingType] = useState<SessionType | null>(null);
   const [editingSlot, setEditingSlot] = useState<AvailableSlot | null>(null);
@@ -396,6 +389,26 @@ const SessionSlotsPage: React.FC = () => {
     );
   }
 
+  const handleViewStudentSession = async (slot: AvailableSlot) => {
+    try {
+      if (slot.booking_status) {
+        // Only fetch student session if slot is booked
+        const studentSession = await getStudentSessionBySlot(slot.slot_date, slot.start_time);
+        if (studentSession) {
+          setCurrentStudentSession(studentSession);
+          setShowStudentSessionModal(true);
+        } else {
+          setError('Student session not found for this slot');
+        }
+      } else {
+        setError('This slot is not booked');
+      }
+    } catch (err) {
+      console.error('Error fetching student session:', err);
+      setError('Failed to fetch student session details');
+    }
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
@@ -515,7 +528,7 @@ const SessionSlotsPage: React.FC = () => {
                     }}
                     className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
                   >
-                    <Plus className="w-4 h-4" />
+                    <PlusCircle className="w-4 h-4" />
                     Single Slot
                   </button>
                   <button
@@ -525,7 +538,7 @@ const SessionSlotsPage: React.FC = () => {
                     }}
                     className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2"
                   >
-                    <CalendarIcon className="w-4 h-4" />
+                    <Calendar className="w-4 h-4" />
                     Bulk Create
                   </button>
                 </div>
@@ -580,7 +593,7 @@ const SessionSlotsPage: React.FC = () => {
                             <p className="text-sm font-medium text-gray-900">Next Available Slot</p>
                             <div className="flex items-center gap-4 mt-2">
                               <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <CalendarIcon className="w-4 h-4" />
+                                <Calendar className="w-4 h-4" />
                                 {formatDate(nextSlot.slot_date)}
                               </div>
                               <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -680,7 +693,7 @@ const SessionSlotsPage: React.FC = () => {
                           }`}>
                             <div className="flex justify-between items-start">
                               <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <CalendarIcon className="w-4 h-4" />
+                                <Calendar className="w-4 h-4" />
                                 {formatDate(slot.slot_date)}
                               </div>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -756,15 +769,9 @@ const SessionSlotsPage: React.FC = () => {
                               </button>
                               {(slot.booking_status || slot.status === 'booked') && (
                                 <button
-                                  onClick={async (e) => {
-                                  e.stopPropagation();
-                                  // Pass slot date and time to get student session
-                                  const studentSession = await getStudentSessionBySlot(slot.slot_date, slot.start_time);
-                                  if (studentSession) {
-                                      alert(`Student: ${studentSession.name}\nEmail: ${studentSession.email}\nPhone: ${studentSession.phone}\nCollege: ${studentSession.college}\nSession Type: ${studentSession.session_type}\nDate: ${studentSession.session_date}\nTime: ${studentSession.session_time}`);
-                                    } else {
-                                      alert('No student session details found for this slot.');
-                                    }
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewStudentSession(slot);
                                   }}
                                   className="bg-blue-50 text-blue-600 p-2 rounded-full hover:bg-blue-100 flex items-center justify-center"
                                   title="View Student Session Details"
@@ -1254,6 +1261,252 @@ const SessionSlotsPage: React.FC = () => {
                   {editingSlot ? 'Update Slot' : 'Create Slot'}
                 </button>
               )}
+            </div>
+            
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => {
+                  setShowStudentSessionModal(false);
+                  setCurrentStudentSession(null);
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Student Session Details Modal */}
+      {showStudentSessionModal && currentStudentSession && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Booking Details</h3>
+              <button
+                onClick={() => {
+                  setShowStudentSessionModal(false);
+                  setCurrentStudentSession(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Student & Session Information */}
+              <div className="border rounded-md p-4">
+                <h4 className="font-medium text-gray-900 mb-3">Student & Session Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-2">
+                    <User className="w-5 h-5 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Name</p>
+                      <p className="font-medium">{currentStudentSession.name}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-2">
+                    <Mail className="w-5 h-5 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Email</p>
+                      <p className="font-medium">{currentStudentSession.email}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-2">
+                    <Phone className="w-5 h-5 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Phone</p>
+                      <p className="font-medium">{currentStudentSession.phone}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-2">
+                    <GraduationCap className="w-5 h-5 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">College</p>
+                      <p className="font-medium">{currentStudentSession.college}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-2">
+                    <MapPin className="w-5 h-5 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Location</p>
+                      <p className="font-medium">{currentStudentSession.location}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-2">
+                    <BookOpen className="w-5 h-5 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Session Type</p>
+                      <p className="font-medium">{currentStudentSession.session_type}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-2">
+                    <Calendar className="w-5 h-5 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Preferred Date</p>
+                      <p className="font-medium">{formatDate(currentStudentSession.preferred_date)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-2">
+                    <Clock className="w-5 h-5 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Session Time</p>
+                      <p className="font-medium">{currentStudentSession.start_time && formatTime12Hour(currentStudentSession.start_time)} - {currentStudentSession.end_time && formatTime12Hour(currentStudentSession.end_time)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Payment Details */}
+              <div className="border rounded-md p-4">
+                <h4 className="font-medium text-gray-900 mb-3">Payment Details</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-2">
+                    <CreditCard className="w-5 h-5 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Payment Status</p>
+                      <p className={`font-medium ${currentStudentSession.payment_status === 'PAID' ? 'text-green-600' : 'text-orange-600'}`}>{currentStudentSession.payment_status}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-2">
+                    <DollarSign className="w-5 h-5 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Price</p>
+                      <p className="font-medium">₹{currentStudentSession.price}</p>
+                    </div>
+                  </div>
+                  
+                  {currentStudentSession.cf_order_id && (
+                    <div className="flex items-start gap-2">
+                      <Tag className="w-5 h-5 mt-0.5 text-gray-500" />
+                      <div>
+                        <p className="text-sm text-gray-500">Order ID</p>
+                        <p className="font-medium">{currentStudentSession.cf_order_id}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {currentStudentSession.payment_timestamp && (
+                    <div className="flex items-start gap-2">
+                      <Clock className="w-5 h-5 mt-0.5 text-gray-500" />
+                      <div>
+                        <p className="text-sm text-gray-500">Payment Time</p>
+                        <p className="font-medium">{new Date(currentStudentSession.payment_timestamp).toLocaleString()}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Session Goals */}
+              <div className="border rounded-md p-4">
+                <h4 className="font-medium text-gray-900 mb-3">Session Goals</h4>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-2">
+                    <HelpCircle className="w-5 h-5 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">What brings you to the session?</p>
+                      <p className="font-medium">{currentStudentSession.brings_to_session}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-2">
+                    <Target className="w-5 h-5 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">What do you hope to gain?</p>
+                      <p className="font-medium">{currentStudentSession.hopes_to_gain}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-2">
+                    <List className="w-5 h-5 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Specific topics to discuss?</p>
+                      <p className="font-medium">{currentStudentSession.specific_topics}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Additional Info */}
+              <div className="border rounded-md p-4">
+                <h4 className="font-medium text-gray-900 mb-3">Additional Info</h4>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-2">
+                    <MessageCircle className="w-5 h-5 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Spoken to someone before?</p>
+                      <p className="font-medium">{currentStudentSession.spoken_to_someone}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-2">
+                    <Info className="w-5 h-5 mt-0.5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Anything else to share?</p>
+                      <p className="font-medium">{currentStudentSession.anything_else || 'No'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Student ID Card */}
+              {currentStudentSession.Id_card && (
+                <div className="border rounded-md p-4">
+                  <h4 className="font-medium text-gray-900 mb-3">Student ID Card</h4>
+                  <div className="flex justify-center">
+                    <a 
+                      href={currentStudentSession.Id_card} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      View ID Card
+                    </a>
+                  </div>
+                </div>
+              )}
+              
+              {/* Meeting Link */}
+              {currentStudentSession.meeting_link && (
+                <div className="border rounded-md p-4">
+                  <h4 className="font-medium text-gray-900 mb-3">Meeting Details</h4>
+                  <div className="flex justify-center">
+                    <a 
+                      href={currentStudentSession.meeting_link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                    >
+                      <Video className="w-4 h-4" />
+                      Join Meeting
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => {
+                  setShowStudentSessionModal(false);
+                  setCurrentStudentSession(null);
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

@@ -245,9 +245,12 @@ export interface StudentBooking {
   location: string;
   id_card_filename?: string;
   id_card_url?: string;
+  Id_card?: string; // Legacy field for backward compatibility
   session_type: string;
   preferred_date: string;
   preferred_time: string;
+  start_time?: string;
+  end_time?: string;
   slot_id?: string;
   brings_to_session?: string;
   hopes_to_gain?: string;
