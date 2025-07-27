@@ -20,7 +20,7 @@ import {
 } from '../types';
 
 const API_URL = 'https://crm-supabase.7za6uc.easypanel.host/rest/v1';
-const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzQ5ODM5NDAwLCJleHAiOjE5MDc2MDU4MDB9.sWCsUjb5xqDn6pIkPlhHScIHJ1ytr8rlTH-SdrHLuZE';
+const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3NDk4Mzk0MDAsImV4cCI6MTkwNzYwNTgwMH0.RUr6v34x5v9ZPaSSjIgqamSeOtPyVpfv20r7wQ4niK0';
 
 const headers = {
   'apikey': API_KEY,
