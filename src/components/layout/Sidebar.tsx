@@ -14,7 +14,8 @@ import {
   ChevronDown,
   Send,
   GraduationCap,
-  CalendarCheck
+  CalendarCheck,
+  Activity
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { Dialog, Transition } from '@headlessui/react';
@@ -93,6 +94,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       name: 'Ebooks', 
       path: '/ebooks', 
       icon: <BookOpen size={20} />
+    },
+    { 
+      name: 'Analytics', 
+      path: '/analytics', 
+      icon: <Activity size={20} />
     },
     { 
       name: 'Reports', 

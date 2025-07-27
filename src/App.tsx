@@ -16,6 +16,7 @@ import SessionSlotsPage from './pages/SessionSlotsPage';
 import StudentBookingsPage from './pages/StudentBookingsPage';
 import StudentBookingDetailsPage from './pages/StudentBookingDetailsPage';
 import InstructorsPage from './pages/InstructorsPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
             <Route path="/bookings" element={<StudentBookingsPage />} />
             <Route path="/bookings/:id" element={<StudentBookingDetailsPage />} />
             <Route path="/reports" element={<Dashboard />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/settings" element={<Dashboard />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

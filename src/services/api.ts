@@ -44,7 +44,7 @@ export async function createInstructorOffering(offeringData: Omit<InstructorOffe
 }
 
 // Helper function to make API requests
-async function fetchApi(endpoint: string, options: RequestInit = {}) {
+export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   const url = `${API_URL}/${endpoint}`;
   try {
     const response = await fetch(url, {
